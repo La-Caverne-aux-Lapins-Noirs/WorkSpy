@@ -1,0 +1,31 @@
+#!/usr/bin/php
+<?php
+// Jason Brillante "Damdoshi"
+// Pentacle Technologie 2008-2022
+// Hanged Bunny Studio 2014-2021
+// EFRITS SAS 2022
+//
+// WorkSpy
+
+if ($argc != 2)
+{
+    echo "Usage is: ./workspy url\n";
+    exit (1);
+}
+
+$url = $argv[1];
+$packet["mac"] = trim(file_get_contents("/sys/class/net/eno1/address"));
+$packet["hostname"] = trim(file_get_contents("/proc/sys/kernel/hostname"));
+
+do
+{
+    $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1 | sort | uniq")));
+    $packet["date"] = trim(date("d/m/Y H:i:s", time()));
+    $packet["lock"] = file_exists("/tmp/block");
+
+    file_put_contents($url, json_encode($packet, JSON_UNESCAPED_SLASHES));
+    system("sleep 5.0");
+}
+while (1);
+
+exit(0);
