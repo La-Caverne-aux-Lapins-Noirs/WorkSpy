@@ -27,7 +27,7 @@ $packet["command"] = "log";
 
 do
 {
-    $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1 | sort | uniq")));
+    $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
     $packet["date"] = trim(date("d/m/Y H:i:s", time()));
     $packet["lock"] = file_exists("/tmp/block");
     SendData($url, $packet);
