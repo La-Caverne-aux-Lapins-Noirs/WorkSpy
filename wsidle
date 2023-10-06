@@ -12,7 +12,7 @@ function SendData($url, $data)
 {
     if (($data = json_encode($data, JSON_UNESCAPED_SLASHES)) == NULL)
 	return (NULL);
-    $cmd = "echo '$data' | ssh -tt -o StrictHostKeyChecking=no infosphere_hand@$url -t infosphere_hand 2> /dev/null";
+    $cmd = "echo '$data' | ssh -tt -o StrictHostKeyChecking=no infosphere_hand@$url -t infosphere_hand -i /root/.ssh/ihk 2> /dev/null";
     $ret = shell_exec($cmd);
     return (json_decode($ret));
 }
