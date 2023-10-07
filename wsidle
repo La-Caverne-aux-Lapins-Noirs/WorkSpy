@@ -28,6 +28,20 @@ $packet["command"] = "log";
 do
 {
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1 | sort | uniq")));
+    if (count($packet["users"]) == 0)
+    {
+      // On vire toutes les IPtables qu'on a pu mettre
+    }
+    foreach ($packet["users"] as $usr)
+    {
+        // NFS port: 111, 2049. LDAP port: 636, 3269. Enterprise IP: 192.168.200.1
+        // Port spécial pour les exams de prog réseau: 1337, il ne sera accepté que via Entreprise ou une IP dédiée future
+        $usr = explode(".", $usr);
+        if (count($usr) == 3 && $usr[2] == "exam")
+	{
+	    // iptables -A OUTPUT -m owner --uid-owner $usr -j REJECT
+	}
+    }   
     $packet["date"] = trim(date("d/m/Y H:i:s", time()));
     $packet["lock"] = file_exists("/tmp/block");
     SendData($url, $packet);
