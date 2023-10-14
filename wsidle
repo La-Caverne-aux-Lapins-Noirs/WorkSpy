@@ -14,15 +14,30 @@
 // Un clef SSH doit déjà avoir été échangé.
 function SendData($url, $data)
 {
-    if (($data = json_encode($data, JSON_UNESCAPED_SLASHES)) == NULL)
-	return (NULL);
-    $cmd = "echo '$data' | ssh -o 'StrictHostKeyChecking no' infosphere_hand@$url -i /root/.ssh/ihk -p 4422 -tt infosphere_hand  2> /dev/null";
+    $ship = hand_packet($data);
+    $cmd = "cat $ship | ssh -o 'StrictHostKeyChecking no' infosphere_hand@$url -i /root/.ssh/ihk -p 4422 -tt infosphere_hand  2> /dev/null ; rm -f $ship";
     $ret = shell_exec($cmd);
+    print_r($ret);
     return (json_decode($ret));
 }
 
+// On ne peut pas effectuer une écriture de taille supérieure à 4k, donc
+// on éclate tout. Le séparateur de commande devient tabulation verticale.
+function hand_packet($data)
+{
+    $data = json_encode($data, JSON_UNESCAPED_UNICODE)."\v";
+    $datatab = str_split($data, 2048);
+    $datatab[] = "stop\v\n";
+    $data = implode("\n", $datatab);
+    $ship = "/tmp/.wsidle_msg".uniqid();
+    file_put_contents($ship, "");
+    system("chmod 600 $ship");
+    file_put_contents($ship, $data);
+    return ($ship);
+}
+
 if ($argc < 2 || $argv[1] == "")
-    $argv[1] = "192.168.200.1";
+    $argv[1] = "nfs.efrits.fr";
 if ($argc < 3 || $argv[2] == "")
     $argv[2] = "intra.efrits.fr";
 if ($argc < 4 || $argv[3] == "")
@@ -46,8 +61,8 @@ do
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
     
     // On vérifie si la chaine EXAM existe
-    $EXAM = (system("iptables -L EXAM") === 0);
-    if (!$EXAM)
+    $EXAM = shell_exec("iptables -L EXAM 2> /dev/null");
+    if ($EXAM == "")
     {
 	system("iptables -N EXAM");
 	// On accepte NFS
