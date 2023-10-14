@@ -17,7 +17,6 @@ function SendData($url, $data)
     $ship = hand_packet($data);
     $cmd = "cat $ship | ssh -o 'StrictHostKeyChecking no' infosphere_hand@$url -i /root/.ssh/ihk -p 4422 -tt infosphere_hand  2> /dev/null ; rm -f $ship";
     $ret = shell_exec($cmd);
-    print_r($ret);
     return (json_decode($ret));
 }
 
@@ -34,6 +33,13 @@ function hand_packet($data)
     system("chmod 600 $ship");
     file_put_contents($ship, $data);
     return ($ship);
+}
+
+function refresh_ip()
+{
+    $out = shell_exec("ip -o -4 addr list eno1 | tr -s ' ' | cut -d ' ' -f 4");
+    $out = explode("/", $out)[0];
+    return ($out);
 }
 
 if ($argc < 2 || $argv[1] == "")
@@ -58,6 +64,7 @@ $EXAM = false;
 
 do
 {
+    $packet["ip"] = refresh_ip();
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
     
     // On vérifie si la chaine EXAM existe
@@ -82,6 +89,7 @@ do
     // Il n'y a personne et EXAM existe
     if (count($packet["users"]) == 0 && $EXAM)
 	system("iptables -F EXAM && iptables -X EXAM");
+    
     // On parcoure les utilisateurs afin de trouver ceux en mode exam
     foreach ($packet["users"] as $usr)
     {
@@ -100,7 +108,7 @@ do
 		    system("skill -kill -u $usr");
 	    }
 	}
-    }   
+    }
     $packet["date"] = trim(date("d/m/Y H:i:s", time()));
     $packet["lock"] = file_exists("/tmp/block");
     SendData($nfs_server, $packet);
