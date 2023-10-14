@@ -59,7 +59,7 @@ $net_server = $argv[4];
 $packet["mac"] = trim(file_get_contents("/sys/class/net/eno1/address"));
 $packet["name"] = trim(file_get_contents("/proc/sys/kernel/hostname"));
 $packet["command"] = "log";
-$packet["type"] = (shell_exec("uname -m") == "x86_64") ? 0 : 3; // 0: Linux, 3: RPI, (1: Windows, 2: Mac)
+$packet["type"] = (shell_exec("uname -m") == "x86_64\n") ? 0 : 3; // 0: Linux, 3: RPI, (1: Windows, 2: Mac)
 
 $EXAM = false;
 
