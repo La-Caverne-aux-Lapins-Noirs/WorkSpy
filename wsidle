@@ -42,6 +42,45 @@ function refresh_ip()
     return ($out);
 }
 
+function kill_user(int $target_id, string $target_name, array $kill_area)
+{
+    system("pkill -u $target_id");
+    unset($kill_area[$target_name]);
+    return(true);
+}
+
+function kill_unauthorized_sessions(array $user, array $exam_stats, array $user_pool)
+{
+    $has_killed_user = false;
+    $username = $user[0].$user[1];
+
+    if (count($user) == 3 && substr($user[2], 0, 4) == "exam")
+    {
+        $mode_connexion = explode(";", $user[2])[1];
+        
+        $exam_username = $username."exam";
+        $user = shell_exec("id -u ".$exam_username);
+
+        // On tue les sessions exam hors examens
+        // Par contre ça va shutdown les sessions juste après le ramassage de Infosphere_hand mdr
+        if (!in_array($username, $exam_stats["users"]))
+            $has_killed_user = kill_user($user, $exam_username, $user_pool);
+
+        // On tue les sessions exam qui ne sont pas en présentiels
+        if (strncmp($mode_connexion, "tty", 3) != 0)
+            $has_killed_user = kill_user($user, $exam_username, $user_pool);
+
+        // On tue les sessions exam en double, 
+        // Normalement il y le Xauthority qui n'est pas en lien symbolique
+        // On regarde s'il l'utilisateur est déjà connecté et s'il ne l'est pas ailleurs
+        if (in_array($exam_username, $exam_stats["connected"]) && $exam_stats["connected"][$exam_username] != refresh_ip())
+            $has_killed_user = kill_user($user, $exam_username, $user_pool);
+    } // On tue les sessions non exam d'utilisateur en exam
+    else if (in_array($username, $exam_stats["users"]))
+        $has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool);
+    return $has_killed_user;
+}
+
 if ($argc < 2 || $argv[1] == "")
     $argv[1] = "nfs.efrits.fr";
 if ($argc < 3 || $argv[2] == "")
@@ -52,10 +91,13 @@ if ($argc < 5 || $argv[4] == "")
     $argv[4] = "192.168.200.1";
 
 $nfs_server = $argv[1];
+$ip_nfs = system("nslookup $nfs_server | grep 'Address:' | awk '{print $2}");
 $is_server = $argv[2];
 $ldap_server = $argv[3];
+$ip_ldap = system("nslookup $ldap_server | grep 'Address:' | awk '{print $2}");
 $net_server = $argv[4];
-	
+
+// Initialisation du packet pour la commande log
 $packet["mac"] = trim(file_get_contents("/sys/class/net/eno1/address"));
 $packet["name"] = trim(file_get_contents("/proc/sys/kernel/hostname"));
 $packet["command"] = "log";
@@ -63,57 +105,56 @@ $packet["type"] = (substr(shell_exec("uname -m"), 0, 6) == "x86_64") ? 0 : 3; //
 
 $EXAM = false;
 
+
+
 do
 {
+    // Récupération des élèves en examens
+    $exam_stats = json_decode(SendData($nfs_server, ["command" => "getexamstudents"])["content"]);
     $packet["ip"] = refresh_ip();
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
-    
-    // On vérifie si la chaine EXAM existe
-    $EXAM = shell_exec("iptables -L EXAM 2> /dev/null");
-    if ($EXAM == "")
-    {
-	system("iptables -N EXAM");
-	// On accepte NFS
-	system("iptables -A EXAM -p tcp -d $nfs_server --dport 111 -j ACCEPT");
-	system("iptables -A EXAM -p tcp -d $nfs_server --dport 2049 -j ACCEPT");
-	system("iptables -A EXAM -p udp -d $nfs_server --dport 111 -j ACCEPT");
-	system("iptables -A EXAM -p udp -d $nfs_server --dport 2049 -j ACCEPT");
-	// On accepte LDAP
-	system("iptables -A EXAM -p tcp -d $ldap_server --dport 636 -j ACCEPT");
-	system("iptables -A EXAM -p tcp -d $ldap_server --dport 3269 -j ACCEPT");
-	system("iptables -A EXAM -p udp -d $ldap_server --dport 636 -j ACCEPT");
-	system("iptables -A EXAM -p udp -d $ldap_server --dport 3269 -j ACCEPT");
-	// On accepte le port spécial
-	system("iptables -A EXAM -p tcp -d $net_server --dport 1337 -j ACCEPT");
-	system("iptables -A EXAM -p udp -d $net_server --dport 1337 -j ACCEPT");
-    }
-    // Il n'y a personne et EXAM existe
-    if (count($packet["users"]) == 0 && $EXAM)
-	system("iptables -F EXAM && iptables -X EXAM");
     
     // On parcoure les utilisateurs afin de trouver ceux en mode exam
     foreach ($packet["users"] as $usr)
     {
         $usr = explode(".", $usr);
-	// Leur compte est forcement prenom.nom.exam
+        
+        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"]))
+            continue;
+
+	    // Leur compte est forcement prenom.nom.exam
         if (count($usr) == 3 && substr($usr[2], 0, 4) == "exam")
-	{
-	    $usr = $usr[0].$usr[1].".exam";
-	    // On regarde si l'utilisateur est déjà dans la liste pour rejet
-	    $out = shell_exec("iptables -L EXAM | grep $usr");
-	    if (strstr($out, $usr) === false)
 	    {
-		// Ce n'est pas le cas, on doit donc l'ajouter
-		if (!(system("iptables -A EXAM -m owner --uid-owner $usr -p all -j REJECT") === 0))
-		    // Si tout ne s'est pas bien passé, on déconnecte l'utilisateur
-		    system("skill -kill -u $usr");
-	    }
-	}
+            $usr = shell_exec("id -u ".$usr[0].$usr[1]."exam");
+            // On regarde si l'utilisateur est déjà dans la liste pour rejet
+            $out = shell_exec("nft list ruleset | grep $usr");
+            if (strlen($out) == 0 || str_contains($out, $usr) === false)
+            {
+            // Ce n'est pas le cas, on doit donc l'ajouter
+            system("nft add chain inet filter output {type filter hook output priority filter \; policy accept \; }");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs tcp dport 111 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs tcp dport 2049 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs udp dport 111 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs udp dport 2049 accept");
+
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap tcp dport 636 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap tcp dport 3269 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap udp dport 636 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap udp dport 3269 accept");
+
+            system("nft add rule inet filter output meta squid $usr ip daddr $net_server tcp dport 1337 accept");
+            system("nft add rule inet filter output meta squid $usr ip daddr $net_server tcp dport 1337 accept");
+            
+            if (!(system("nft add rule filter output meta squid $usr reject") === 0))
+                system("pkill -u $usr");
+            }
+        }
+        $packet["date"] = trim(date("d/m/Y H:i:s", time()));
+        $packet["lock"] = file_exists("/tmp/block");
+        SendData($nfs_server, $packet);
+        
+        system("sleep 5.0");
     }
-    $packet["date"] = trim(date("d/m/Y H:i:s", time()));
-    $packet["lock"] = file_exists("/tmp/block");
-    SendData($nfs_server, $packet);
-    system("sleep 5.0");
 }
 while (1);
 exit(0);
