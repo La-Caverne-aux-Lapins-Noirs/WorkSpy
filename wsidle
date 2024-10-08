@@ -118,10 +118,11 @@ function kill_unauthorized_sessions(array $user,
     return $has_killed_user;
 }
 
-function get_room(string $computer_name)
+function get_room(string $computer_name,
+		  string $nfs_server)
 {
-    $ret = json_decode(SendData($nfs_server, ["command" => "getcomputerroom", "name" => $packet["name"]]));
-    if ($ret["result"] == "ok")
+    $ret = json_decode(SendData($nfs_server, ["command" => "getcomputerroom", "name" => $computer_name]));
+    if (isset($ret["result"]) && $ret["result"] == "ok")
 	return $ret["content"];
     return "";
 }
@@ -151,15 +152,20 @@ $packet["type"] = (substr(shell_exec("uname -m"), 0, 6) == "x86_64") ? 0 : 3; //
 $EXAM = false;
 
 // Récupération de la room
-$room_info = ["name" => get_room($packet["name"]), "exam_only" => false];
+$room_info = ["name" => get_room($packet["name"], $nfs_server), "exam_only" => false];
 
 do
 {
     // Récupération des élèves en examens
-    $exam_stats = json_decode(SendData($nfs_server, ["command" => "getexamstudents"])["content"]);
+    $exam_stats = SendData($nfs_server, ["command" => "getexamstudents"]);
+    if (!isset($exam_stats))
+	continue;
+    $exam_stats = json_decode($exam_stats["content"]);
     
     $packet["ip"] = refresh_ip();
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
+    if (!isset($packet["users"]))
+	continue;
     
     // On parcoure les utilisateurs afin de trouver ceux en mode exam
     foreach ($packet["users"] as $usr)
