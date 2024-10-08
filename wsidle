@@ -49,36 +49,80 @@ function kill_user(int $target_id, string $target_name, array $kill_area)
     return(true);
 }
 
-function kill_unauthorized_sessions(array $user, array $exam_stats, array $user_pool)
+function kill_unauthorized_sessions(array $user,
+				    array $exam_stats,
+				    array $user_pool,
+				    string $mode_connexion,
+				    array $room,
+				    string $nfs_server)
 {
     $has_killed_user = false;
     $username = $user[0].$user[1];
 
     if (count($user) == 3 && substr($user[2], 0, 4) == "exam")
-    {
-        $mode_connexion = explode(";", $user[2])[1];
-        
+    {        
         $exam_username = $username."exam";
         $user = shell_exec("id -u ".$exam_username);
 
         // On tue les sessions exam hors examens
         // Par contre ça va shutdown les sessions juste après le ramassage de Infosphere_hand mdr
-        if (!in_array($username, $exam_stats["users"]))
-            $has_killed_user = kill_user($user, $exam_username, $user_pool);
+	
+	if (!isset($exam_stats["users"][$username]))
+	    {
+		$has_killed_user = kill_user($user, $exam_username, $user_pool);
+		SendData($nfs_server, ["command" => "addcustomlog",
+				       "log" => "$exam_username has been killed, because ".
+					      "there is no exam for now !"]);
+	    }
+	else if ($exam_stats["users"][$username] != $room["name"])
+	    {
+		$has_killed_user = kill_user($user, $exam_username, $user_pool);
+		SendData($nfs_server, ["command" => "addcustomlog",
+				       "log" => "$exam_username has been killed, because ".
+					      "$exam_username is not in the right room"]);
+	    }
 
         // On tue les sessions exam qui ne sont pas en présentiels
         if (strncmp($mode_connexion, "tty", 3) != 0)
-            $has_killed_user = kill_user($user, $exam_username, $user_pool);
+	    {
+		$has_killed_user = kill_user($user, $exam_username, $user_pool);
+		SendData($nfs_server, ["command" => "addcustomlog",
+				       "log" => "$exam_username has been killed, because ".
+					      "exam cannot be in remote session"]);
+	    }
 
         // On tue les sessions exam en double, 
         // Normalement il y le Xauthority qui n'est pas en lien symbolique
         // On regarde s'il l'utilisateur est déjà connecté et s'il ne l'est pas ailleurs
-        if (in_array($exam_username, $exam_stats["connected"]) && $exam_stats["connected"][$exam_username] != refresh_ip())
+        if (isset($exam_stats["connected"][$exam_username])
+	    && $exam_stats["connected"][$exam_username] != refresh_ip())
+	{
             $has_killed_user = kill_user($user, $exam_username, $user_pool);
+	    SendData($nfs_server, ["command" => "addcustomlog",
+				   "log" => "$exam_username has been killed because".
+					  " $exam_username is already connected somewhere else !"]);
+	}
+    } // On tue toutes les sessions non exam dans une salle d'examen
+    else if ($room["exam_only"])
+    {
+	$has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool);
+	SendData($nfs_server, ["command" => "addcustomlog",
+			       "log" => "$username has been killed because it's an exam only room"]);
     } // On tue les sessions non exam d'utilisateur en exam
     else if (in_array($username, $exam_stats["users"]))
+    {
         $has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool);
+	SendData($nfs_server, ["command" => "addcustomlog",
+			     "log" => "$username has been killed because $username must be in exam"]);
     return $has_killed_user;
+}
+
+function get_room(string $computer_name)
+{
+    $ret = json_decode(SendData($nfs_server, ["command" => "getcomputerroom", "name" => $packet["name"]]));
+    if ($ret["result"] == "ok")
+	return $ret["content"];
+    return "";
 }
 
 if ($argc < 2 || $argv[1] == "")
@@ -105,12 +149,14 @@ $packet["type"] = (substr(shell_exec("uname -m"), 0, 6) == "x86_64") ? 0 : 3; //
 
 $EXAM = false;
 
-
+// Récupération de la room
+$room_info = ["name" => get_room($packet["name"]), "exam_only" => false];
 
 do
 {
     // Récupération des élèves en examens
     $exam_stats = json_decode(SendData($nfs_server, ["command" => "getexamstudents"])["content"]);
+    
     $packet["ip"] = refresh_ip();
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
     
@@ -118,39 +164,51 @@ do
     foreach ($packet["users"] as $usr)
     {
         $usr = explode(".", $usr);
+	$mode_connexion = explode(";", end($user))[1];
         
-        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"]))
+        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"], $mode_connexion, $room_info))
             continue;
 
 	    // Leur compte est forcement prenom.nom.exam
         if (count($usr) == 3 && substr($usr[2], 0, 4) == "exam")
-	    {
+	{	    
             $usr = shell_exec("id -u ".$usr[0].$usr[1]."exam");
             // On regarde si l'utilisateur est déjà dans la liste pour rejet
             $out = shell_exec("nft list ruleset | grep $usr");
             if (strlen($out) == 0 || str_contains($out, $usr) === false)
             {
             // Ce n'est pas le cas, on doit donc l'ajouter
-            system("nft add chain inet filter output {type filter hook output priority filter \; policy accept \; }");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs tcp dport 111 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs tcp dport 2049 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs udp dport 111 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_nfs udp dport 2049 accept");
+		system("nft add chain inet filter output {type filter hook output ".
+		       "priority filter \; policy accept \; }");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_nfs tcp dport 111 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_nfs tcp dport 2049 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_nfs udp dport 111 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_nfs udp dport 2049 accept");
 
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap tcp dport 636 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap tcp dport 3269 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap udp dport 636 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $ip_ldap udp dport 3269 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_ldap tcp dport 636 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_ldap tcp dport 3269 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_ldap udp dport 636 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $ip_ldap udp dport 3269 accept");
 
-            system("nft add rule inet filter output meta squid $usr ip daddr $net_server tcp dport 1337 accept");
-            system("nft add rule inet filter output meta squid $usr ip daddr $net_server tcp dport 1337 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $net_server tcp dport 1337 accept");
+		system("nft add rule inet filter output meta squid $usr ".
+		       "ip daddr $net_server tcp dport 1337 accept");
             
             if (!(system("nft add rule filter output meta squid $usr reject") === 0))
                 system("pkill -u $usr");
             }
         }
         $packet["date"] = trim(date("d/m/Y H:i:s", time()));
-        $packet["lock"] = file_exists("/tmp/block");
+        $packet["lock"] = file_exists("/tmp/block") && strncmp($mode_connexion, "tty", 3) == 0;
         SendData($nfs_server, $packet);
         
         system("sleep 5.0");
