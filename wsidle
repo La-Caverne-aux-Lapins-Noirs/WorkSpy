@@ -113,7 +113,8 @@ function kill_unauthorized_sessions(array $user,
     {
         $has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool);
 	SendData($nfs_server, ["command" => "addcustomlog",
-			     "log" => "$username has been killed because $username must be in exam"]);
+			       "log" => "$username has been killed because $username must be in exam"]);
+    }
     return $has_killed_user;
 }
 
