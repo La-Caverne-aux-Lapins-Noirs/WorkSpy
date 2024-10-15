@@ -162,7 +162,12 @@ do
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
     if (!isset($packet["users"]))
 	continue;
-    
+
+    if (in_array($room_info["name"], $exam_stats["users"]))
+	$room_info["exam_only"] = true;
+    else
+	$room_info["exam_only"] = false;
+
     // On parcoure les utilisateurs afin de trouver ceux en mode exam
     foreach ($packet["users"] as $usr)
     {
