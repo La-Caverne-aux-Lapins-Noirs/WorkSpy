@@ -190,6 +190,9 @@ do
         if (count($usr) == 3 && substr($usr[2], 0, 4) == "exam")
 	{	    
             $usr = shell_exec("id -u ".$usr[0].".".$usr[1].".exam");
+
+	    $usr = str_replace("\n", "", $usr);
+	    
             // On regarde si l'utilisateur est déjà dans la liste pour rejet
             $out = shell_exec("nft list ruleset | grep $usr");
             if (strlen($out) == 0 || str_contains($out, $usr) === false)
