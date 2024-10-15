@@ -224,8 +224,8 @@ do
         $packet["lock"] = file_exists("/tmp/block") && strncmp($mode_connexion, "tty", 3) == 0;
         SendData($nfs_server, $packet);
         
-        system("sleep 5.0");
     }
+    system("sleep 5.0");
 }
 while (1);
 exit(0);
