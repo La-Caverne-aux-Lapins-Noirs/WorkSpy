@@ -151,6 +151,7 @@ $packet["type"] = (substr(shell_exec("uname -m"), 0, 6) == "x86_64") ? 0 : 3; //
 $EXAM = false;
 
 // Récupération de la room
+$computer_name = explode(".", $packet["name"])[0];
 $room_info = ["name" => get_room($packet["name"], $nfs_server), "exam_only" => false];
 
 do
