@@ -170,9 +170,9 @@ do
 	    continue;
 	$usr_part = explode(";", end($usr));
 	$usr[count($usr) - 1] = $usr_part[0];
-	$mode_connexion = $user_part[1];
+	$mode_connexion = $usr_part[1];
         
-        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"], $mode_connexion, $room_info))
+        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"], $mode_connexion, $room_info, $nfs_server))
             continue;
 
 	    // Leur compte est forcement prenom.nom.exam
