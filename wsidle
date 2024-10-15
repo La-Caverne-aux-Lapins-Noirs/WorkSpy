@@ -17,7 +17,8 @@ function SendData($url, $data)
     $ship = hand_packet($data);
     $cmd = "cat $ship | ssh -o 'StrictHostKeyChecking no' infosphere_hand@$url -i /root/.ssh/ihk -p 4422 -tt infosphere_hand  2> /dev/null ; rm -f $ship";
     $ret = shell_exec($cmd);
-    return (json_decode($ret));
+    $ret = explode("\n", $ret);
+    return (json_decode(end($ret), true));
 }
 
 // On ne peut pas effectuer une écriture de taille supérieure à 4k, donc
@@ -102,14 +103,14 @@ function kill_unauthorized_sessions(array $user,
 				   "log" => "$exam_username has been killed because".
 					  " $exam_username is already connected somewhere else !"]);
 	}
-    } // On tue toutes les sessions non exam dans une salle d'examen
-    else if ($room["exam_only"])
+    } // On tue toutes les sessions non exam présentiel dans une salle d'examen
+    else if ($room["exam_only"] && strncmp($mode_connexion, "tty", 3) == 0)
     {
 	$has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool);
 	SendData($nfs_server, ["command" => "addcustomlog",
 			       "log" => "$username has been killed because it's an exam only room"]);
     } // On tue les sessions non exam d'utilisateur en exam
-    else if (in_array($username, $exam_stats["users"]))
+    else if (isset($exam_stats["users"][$username]))
     {
         $has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool);
 	SendData($nfs_server, ["command" => "addcustomlog",
@@ -123,7 +124,7 @@ function get_room(string $computer_name,
 {
     $ret = json_decode(SendData($nfs_server, ["command" => "getcomputerroom", "name" => $computer_name]));
     if (isset($ret["result"]) && $ret["result"] == "ok")
-	return $ret["content"];
+	return $ret["message"];
     return "";
 }
 
@@ -137,10 +138,7 @@ if ($argc < 5 || $argv[4] == "")
     $argv[4] = "192.168.200.1";
 
 $nfs_server = $argv[1];
-$ip_nfs = system("nslookup $nfs_server | grep 'Address:' | awk '{print $2}");
-$is_server = $argv[2];
 $ldap_server = $argv[3];
-$ip_ldap = system("nslookup $ldap_server | grep 'Address:' | awk '{print $2}");
 $net_server = $argv[4];
 
 // Initialisation du packet pour la commande log
@@ -187,23 +185,15 @@ do
             // Ce n'est pas le cas, on doit donc l'ajouter
 		system("nft add chain inet filter output {type filter hook output ".
 		       "priority filter \; policy accept \; }");
-		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_nfs tcp dport 111 accept");
-		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_nfs tcp dport 2049 accept");
-		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_nfs udp dport 111 accept");
-		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_nfs udp dport 2049 accept");
 
 		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_ldap tcp dport 636 accept");
+		       "ip daddr $ldap_server tcp dport 636 accept");
 		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_ldap tcp dport 3269 accept");
+		       "ip daddr $ldap_server tcp dport 3269 accept");
 		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_ldap udp dport 636 accept");
+		       "ip daddr $ldap_server udp dport 636 accept");
 		system("nft add rule inet filter output meta squid $usr ".
-		       "ip daddr $ip_ldap udp dport 3269 accept");
+		       "ip daddr $ldap_server udp dport 3269 accept");
 
 		system("nft add rule inet filter output meta squid $usr ".
 		       "ip daddr $net_server tcp dport 1337 accept");
