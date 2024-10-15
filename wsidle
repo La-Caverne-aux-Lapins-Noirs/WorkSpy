@@ -138,6 +138,7 @@ if ($argc < 5 || $argv[4] == "")
     $argv[4] = "192.168.200.1";
 
 $nfs_server = $argv[1];
+$ip_nfs = $argv[2];
 $ldap_server = $argv[3];
 $net_server = $argv[4];
 
