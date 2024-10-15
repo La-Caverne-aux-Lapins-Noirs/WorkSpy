@@ -58,11 +58,11 @@ function kill_unauthorized_sessions(array $user,
 				    string $nfs_server)
 {
     $has_killed_user = false;
-    $username = $user[0].$user[1];
+    $username = $user[0].".".$user[1];
 
     if (count($user) == 3 && substr($user[2], 0, 4) == "exam")
     {        
-        $exam_username = $username."exam";
+        $exam_username = $username.".exam";
         $user = shell_exec("id -u ".$exam_username);
 
         // On tue les sessions exam hors examens
