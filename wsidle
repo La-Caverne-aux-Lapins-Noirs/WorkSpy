@@ -131,7 +131,7 @@ function get_room(string $computer_name,
 if ($argc < 2 || $argv[1] == "")
     $argv[1] = "nfs.efrits.fr";
 if ($argc < 3 || $argv[2] == "")
-    $argv[2] = "intra.efrits.fr";
+    $argv[2] = "192.168.200.1";
 if ($argc < 4 || $argv[3] == "")
     $argv[3] = "192.168.200.1";
 if ($argc < 5 || $argv[4] == "")
