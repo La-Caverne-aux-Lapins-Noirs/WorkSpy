@@ -128,6 +128,10 @@ function get_room(string $computer_name,
     return "";
 }
 
+// Reset nftables
+
+system("sudo nft flush ruleset; nft add table inet filter");
+
 if ($argc < 2 || $argv[1] == "")
     $argv[1] = "nfs.efrits.fr";
 if ($argc < 3 || $argv[2] == "")
