@@ -194,30 +194,30 @@ do
 		system("nft add chain inet filter output {type filter hook output ".
 		       "priority filter \; policy accept \; }");
 
-                system("nft add rule inet filter output meta squid $usr ".
+                system("nft add rule inet filter output meta skuid $usr ".
                        "ip daddr $ip_nfs tcp dport 111 accept");
-                system("nft add rule inet filter output meta squid $usr ".
+                system("nft add rule inet filter output meta skuid $usr ".
                        "ip daddr $ip_nfs tcp dport 2049 accept");
-                system("nft add rule inet filter output meta squid $usr ".
+                system("nft add rule inet filter output meta skuid $usr ".
                        "ip daddr $ip_nfs udp dport 111 accept");
-                system("nft add rule inet filter output meta squid $usr ".
+                system("nft add rule inet filter output meta skuid $usr ".
                        "ip daddr $ip_nfs udp dport 2049 accept");
 
-		system("nft add rule inet filter output meta squid $usr ".
+		system("nft add rule inet filter output meta skuid $usr ".
 		       "ip daddr $ldap_server tcp dport 636 accept");
-		system("nft add rule inet filter output meta squid $usr ".
+		system("nft add rule inet filter output meta skuid $usr ".
 		       "ip daddr $ldap_server tcp dport 3269 accept");
-		system("nft add rule inet filter output meta squid $usr ".
+		system("nft add rule inet filter output meta skuid $usr ".
 		       "ip daddr $ldap_server udp dport 636 accept");
-		system("nft add rule inet filter output meta squid $usr ".
+		system("nft add rule inet filter output meta skuid $usr ".
 		       "ip daddr $ldap_server udp dport 3269 accept");
 
-		system("nft add rule inet filter output meta squid $usr ".
+		system("nft add rule inet filter output meta skuid $usr ".
 		       "ip daddr $net_server tcp dport 1337 accept");
-		system("nft add rule inet filter output meta squid $usr ".
+		system("nft add rule inet filter output meta skuid $usr ".
 		       "ip daddr $net_server tcp dport 1337 accept");
             
-            if (!(system("nft add rule filter output meta squid $usr reject") === 0))
+            if (!(system("nft add rule filter output meta skuid $usr reject") === 0))
                 system("pkill -u $usr");
             }
         }
