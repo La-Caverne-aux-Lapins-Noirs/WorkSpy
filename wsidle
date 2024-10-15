@@ -166,7 +166,11 @@ do
     foreach ($packet["users"] as $usr)
     {
         $usr = explode(".", $usr);
-	$mode_connexion = explode(";", end($user))[1];
+	if (count($usr) == 1)
+	    continue;
+	$usr_part = explode(";", end($usr));
+	$usr[count($usr) - 1] = $usr_part[0];
+	$mode_connexion = $user_part[1];
         
         if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"], $mode_connexion, $room_info))
             continue;
