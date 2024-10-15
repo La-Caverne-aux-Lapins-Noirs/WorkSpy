@@ -122,7 +122,7 @@ function kill_unauthorized_sessions(array $user,
 function get_room(string $computer_name,
 		  string $nfs_server)
 {
-    $ret = json_decode(SendData($nfs_server, ["command" => "getcomputerroom", "name" => $computer_name]));
+    $ret = SendData($nfs_server, ["command" => "getcomputerroom", "name" => $computer_name]);
     if (isset($ret["result"]) && $ret["result"] == "ok")
 	return $ret["message"];
     return "";
@@ -156,9 +156,6 @@ do
 {
     // Récupération des élèves en examens
     $exam_stats = SendData($nfs_server, ["command" => "getexamstudents"]);
-    if (!isset($exam_stats))
-	continue;
-    $exam_stats = json_decode($exam_stats["content"]);
     
     $packet["ip"] = refresh_ip();
     $packet["users"] = explode("\n", trim(shell_exec("who | cut -d ' ' -f 1,2 | tr ' ' ';' | sort | uniq")));
