@@ -43,9 +43,22 @@ function refresh_ip()
     return ($out);
 }
 
-function kill_user(int $target_id, string $target_name, array $kill_area)
+function kill_user(int $target_id,
+		   string $target_name,
+		   array $kill_area,
+		   array $killer_manager)
 {
-    system("pkill -u $target_id");
+    if (!isset($killer_manager["killed_user"][$target_name]) ||
+	$killer_manager["killed_user"][$target_name] != ($killer_manager["time"] - 1))
+    {
+	system("pkill -u $target_id");
+	$killer_manager["killed_user"][$target_name] = $killer_manager["time"];
+    }
+    else
+    {
+	system("pkill -u -9 $target_id");
+	$killer_manager["killed_user"][$target_name] = $killer_manager["time"];
+    }
     unset($kill_area[$target_name]);
     return(true);
 }
@@ -55,7 +68,8 @@ function kill_unauthorized_sessions(array $user,
 				    array $user_pool,
 				    string $mode_connexion,
 				    array $room,
-				    string $nfs_server)
+				    string $nfs_server,
+				    array $killer_manager)
 {
     $has_killed_user = false;
     $username = $user[0].".".$user[1];
@@ -157,6 +171,7 @@ $EXAM = false;
 // Récupération de la room
 $computer_name = explode(".", $packet["name"])[0];
 $room_info = ["name" => get_room($computer_name, $nfs_server), "exam_only" => false];
+$killer_manager = ["time" => 0, "killed_user" => []];
 
 do
 {
@@ -183,7 +198,7 @@ do
 	$usr[count($usr) - 1] = $usr_part[0];
 	$mode_connexion = $usr_part[1];
         
-        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"], $mode_connexion, $room_info, $nfs_server))
+        if (kill_unauthorized_sessions($usr, $exam_stats, $packet["users"], $mode_connexion, $room_info, $nfs_server, $killer_manager))
             continue;
 
 	    // Leur compte est forcement prenom.nom.exam
@@ -233,6 +248,9 @@ do
         SendData($nfs_server, $packet);
         
     }
+    $killer_manager["time"] += 1;
+    if ($killer_manager["time"] == 1000000)
+	$killer_manager["time"] = 0;
     system("sleep 5.0");
 }
 while (1);
