@@ -168,7 +168,7 @@ do
     if (!isset($packet["users"]))
 	continue;
 
-    if (in_array($room_info["name"], $exam_stats["users"]))
+    if (isset($exam_stats["users"]) && in_array($room_info["name"], $exam_stats["users"]))
 	$room_info["exam_only"] = true;
     else
 	$room_info["exam_only"] = false;
