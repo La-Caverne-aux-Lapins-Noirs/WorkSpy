@@ -59,7 +59,8 @@ function kill_user(int $target_id,
 	system("pkill -u -9 $target_id");
 	$killer_manager["killed_user"][$target_name] = $killer_manager["time"];
     }
-    unset($kill_area[$target_name]);
+    if (isset($kill_area[$target_name]))
+	unset($kill_area[$target_name]);
     return(true);
 }
 
@@ -118,12 +119,12 @@ function kill_unauthorized_sessions(array $user,
 					  " $exam_username is already connected somewhere else !"]);
 	}
     } // On tue toutes les sessions non exam présentiel dans une salle d'examen
-    else if ($room["exam_only"] && strncmp($mode_connexion, "tty", 3) == 0)
+/*    else if ($room["exam_only"] && strncmp($mode_connexion, "tty", 3) == 0)
     {
 	$has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool, $killer_manager);
 	SendData($nfs_server, ["command" => "addcustomlog",
 			       "log" => "$username has been killed because it's an exam only room"]);
-    } // On tue les sessions non exam d'utilisateur en exam
+    } */// On tue les sessions non exam d'utilisateur en exam
     else if (isset($exam_stats["users"][$username]))
     {
         $has_killed_user = kill_user(shell_exec("id -u ".$username), $username, $user_pool, $killer_manager);
