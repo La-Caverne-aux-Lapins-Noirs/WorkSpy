@@ -52,15 +52,11 @@ function kill_user(int $target_id,
 	$killer_manager["killed_user"][$target_name] != ($killer_manager["time"] - 1))
     {
 	system("pkill -u $target_id");
-	$killer_manager["killed_user"][$target_name] = $killer_manager["time"];
     }
     else
-    {
 	system("pkill -u -9 $target_id");
-	$killer_manager["killed_user"][$target_name] = $killer_manager["time"];
-    }
-    if (isset($kill_area[$target_name]))
-	unset($kill_area[$target_name]);
+    $killer_manager["killed_user"][$target_name] = $killer_manager["time"];
+    unset($kill_area[$target_name]);
     return(true);
 }
 
@@ -241,17 +237,18 @@ do
 		       "ip daddr $net_server tcp dport 1337 accept");
             
             if (system("nft add rule inet filter output meta skuid $usr reject") === false)
-                system("pkill -u $usr");
+		kill_user(shell_exec("id -u ".$usr), $usr, $packet["users"], $killer_manager);
             }
         }
-        $packet["date"] = trim(date("d/m/Y H:i:s", time()));
-        $packet["lock"] = file_exists("/tmp/block") && strncmp($mode_connexion, "tty", 3) == 0;
-        SendData($nfs_server, $packet);
-        
     }
     $killer_manager["time"] += 1;
     if ($killer_manager["time"] == 1000000)
 	$killer_manager["time"] = 0;
+
+    $packet["date"] = trim(date("d/m/Y H:i:s", time()));
+    $packet["lock"] = file_exists("/tmp/block") && strncmp($mode_connexion, "tty", 3) == 0;
+    SendData($nfs_server, $packet);
+
     system("sleep 5.0");
 }
 while (1);
