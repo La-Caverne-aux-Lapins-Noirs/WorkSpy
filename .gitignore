@@ -1,0 +1,7 @@
+*~
+#*
+.debhelper
+debhelper*
+files
+debian/workspy.*
+debian/workspy/

@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: workspy
+Source: https://github.com/La-Caverne-aux-Lapins-Noirs/WorkSpy
+
+Files: *
+Copyright: 2025 damdoshi technocore@technocore
+License: GNU GPL
+

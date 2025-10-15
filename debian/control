@@ -1,0 +1,13 @@
+Source: workspy
+Priority: optional
+Maintainer: technocore <technocore@technocore>
+Build-Depends: debhelper-compat (= 13), php-cli
+Standards-Version: 4.6.2
+
+Package: workspy
+Section: libdevel
+Architecture: all
+Depends: ${misc:Depends}
+Description: Session utils.
+ Allow the infosphere hand to control computer room's computers.
+ 
