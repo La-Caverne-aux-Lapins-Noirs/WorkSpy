@@ -5,7 +5,7 @@ function parse_duration($idle): int
     if ($idle == '.' || $idle == '')
         return (0);
     if (preg_match('/^([0-9]+)(\.[0-9]+)?s$/', $idle, $m))
-	return ($m[1])
+	return ($m[1]);
     if (preg_match('/^([0-9]+):([0-9]+)?m?$/', $idle, $m))
 	return ($m[1] * 60 + $m[2]);
     if (preg_match('/^([0-9]+):([0-9]+):([0-9]+)?$/', $idle, $m))
@@ -23,7 +23,7 @@ function is_user_lock($user)
     {
 	$l = explode(" ", $l);
 	// On est strict sur la commande pour ne pas se tromper - "echo xtrlock-pam"
-	if (count($l) == 4 && $l[3] == "xtrlock-pam")
+	if (count($l) >= 4 && preg_match('/^xtrlock-pam[ ]?/', $l[3]))
 	    return (parse_duration($l[2]));
     }
     return (0);
@@ -35,10 +35,12 @@ function get_users_activity()
     $lst = `PROCPS_USERLEN=32 w | tr -s ' '`;
     $lst = explode("\n", $lst);
     array_shift($lst);
+    array_shift($lst);
+    array_pop($lst);
     foreach ($lst as $l)
     {
 	$l = explode(" ", $l);
-	if (filter_var($l[2], FILTER_VALIDATE_IPV4))
+	if (filter_var($l[2], FILTER_VALIDATE_IP))
 	{
 	    // SSH user
 	    $users[] = [
@@ -56,10 +58,11 @@ function get_users_activity()
 		"username" => $l[0],
 		"mode" => "x",
 		"lock" => $lock != 0,
-		"last_activity" => $lock ? time() - $lock : time()
+		"last_activity" => $lock != 0 ? time() - $lock : time()
 	    ];
 	}
     }
     return ($users);
 }
 
+print_r(get_users_activity());
