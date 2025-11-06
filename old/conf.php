@@ -12,7 +12,7 @@ else
     $conf["CUSTOM"] = "192.168.200.1";
 }
 
-$nfs_server = $conf["NFS"]["Domain"]
+$nfs_server = $conf["NFS"]["Domain"];
 $ip_nfs = $conf["NFS"]["IP"];
 $ldap_server = $conf["LDAP"];
 $net_server = $conf["CUSTOM"];
