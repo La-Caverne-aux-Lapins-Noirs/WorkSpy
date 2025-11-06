@@ -65,4 +65,4 @@ function users_get_activity()
     return ($users);
 }
 
-print_r(get_users_activity());
+
