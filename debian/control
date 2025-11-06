@@ -1,13 +1,13 @@
-Source: workspy
+Source: persoc
 Priority: optional
 Maintainer: technocore <technocore@technocore>
-Build-Depends: debhelper-compat (= 13), php-cli
+Build-Depends: debhelper-compat (= 13), php-cli, liblapin-utils
 Standards-Version: 4.6.2
 
-Package: workspy
+Package: persoc
 Section: libdevel
 Architecture: all
 Depends: ${misc:Depends}
 Description: Session utils.
  Allow the infosphere hand to control computer room's computers.
- 
+Allow users to achieve specific tasks together.

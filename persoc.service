@@ -1,0 +1,8 @@
+[Unit]
+Description=Persoc
+
+[Service]
+Type=oneshot
+User=persoc
+ExecStart=/usr/bin/php /opt/persoc/persoc.php
+

@@ -5,3 +5,9 @@
 // EFRITS SAS 2025
 //
 // Persoc
+
+foreach (glob(__DIR__."/*/*.php") as $f)
+    require_once ($f);
+
+firewall_reset();
+

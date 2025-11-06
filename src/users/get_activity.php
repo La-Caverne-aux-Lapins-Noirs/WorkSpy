@@ -29,7 +29,7 @@ function is_user_lock($user)
     return (0);
 }
 
-function get_users_activity()
+function users_get_activity()
 {
     $users = [];
     $lst = `PROCPS_USERLEN=32 w | tr -s ' '`;
