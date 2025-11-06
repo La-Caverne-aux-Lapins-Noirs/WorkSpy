@@ -1,1 +1,4 @@
-wsidle usr/bin/
+persoc usr/bin/
+src/* opt/persoc/
+persoc.dab etc/persoc/
+wsidle usr/bin

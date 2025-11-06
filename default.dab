@@ -1,0 +1,24 @@
+[*
+** Persoc configuration file
+** Default configuration made to be added inside /etc/persoc/
+*]
+
+'Per minute
+RefreshFrequency = 2
+
+[NFS
+  Domain = "localhost"
+  IP = "127.0.0.1"
+]
+
+[LDAP
+  Domain = "localhost"
+  IP = "127.0.0.1"
+]
+
+[CUSTOM
+  Domain = "localhost"
+  IP = "127.0.0.1"
+]
+
+@include "conf.d/"
