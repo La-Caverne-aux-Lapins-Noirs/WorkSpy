@@ -8,8 +8,12 @@ declare(strict_types=1);
 //
 // Persoc (daemon bootstrap + main loop)
 
-foreach (glob(__DIR__ . "/*/*.php") as $f)
-    require_once($f);
+require_once (__DIR__."/firewall/deadlist.php");
+require_once (__DIR__."/firewall/exam.php");
+require_once (__DIR__."/firewall/reset.php");
+require_once (__DIR__."/tools/send_data.php");
+require_once (__DIR__."/users/expell_intruders.php");
+require_once (__DIR__."/users/log_activity.php");
 
 // -----------------------------------------------------------------------------
 // Logging
@@ -38,6 +42,7 @@ function load_configuration(string $conf_file = ""): array
             $conf_file = "/etc/persoc/persoc.dab /etc/persoc/confs.d/*";
     }
 
+    $conf_file = escapeshellarg($conf_file);
     $raw = shell_exec("mergeconf -i " . $conf_file . " -of .json --resolve 2>/dev/null");
     $conf = is_string($raw) ? json_decode($raw, true) : null;
     if (!is_array($conf))

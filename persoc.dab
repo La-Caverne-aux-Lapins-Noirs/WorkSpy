@@ -16,6 +16,6 @@ InfosphereHand = "192.168.200.1"
 NFS = "192.168.200.1"
 LDAP = "192.168.200.1"
 CUSTOM = "192.168.200.1"
-DeadList = "/etc/persoc/deadlist.csv"
+Deadlist = "/etc/persoc/deadlist.csv"
 @include "conf.d/"
 

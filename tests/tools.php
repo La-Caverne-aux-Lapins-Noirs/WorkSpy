@@ -253,7 +253,7 @@ cat > '$stdinEsc'
 # Simulate some noisy output + final JSON line
 echo "hello"
 echo "world"
-echo '$finalJsonEsc'
+printf '%s\n' '$finalJsonEsc'
 exit 0
 SH;
 

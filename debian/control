@@ -7,7 +7,8 @@ Standards-Version: 4.6.2
 Package: persoc
 Section: libdevel
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, php-cli, openssh-client, nftables, iproute2, procps, systemd, bsdutils, liblapin-utils
 Description: Session utils.
- Allow the infosphere hand to control computer room's computers.
-Allow users to achieve specific tasks together.
+  Allow Infosphere Hand to set firewall on Huile systems. Allow
+  users to announce automatically they are working to infosphere hand.
+  And others things.

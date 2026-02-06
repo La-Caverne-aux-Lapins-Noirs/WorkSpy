@@ -2,7 +2,11 @@
 Description=Persoc
 
 [Service]
-Type=oneshot
-User=persoc
+Type=simple
+User=root
 ExecStart=/usr/bin/php /opt/persoc/persoc.php
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
 
