@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
-if (file_exists(__DIR__."/src/wsidle.php"))
-   require_once (__DIR__."/src/wsidle.php");
+if (file_exists(__DIR__."/src/persoc.php"))
+   require_once (__DIR__."/src/persoc.php");
 else
    require_once ("/opt/persoc/persoc.php");
 
