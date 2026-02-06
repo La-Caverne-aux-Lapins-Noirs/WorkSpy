@@ -1,0 +1,21 @@
+[*
+** Persoc configuration file
+** Default configuration made to be added inside /etc/persoc/
+*]
+
+'Per minute
+[Intervals
+  Tick = 1
+  Activity = 5
+  Intruders = 5
+  Deadlist = 59
+]
+
+LocalUser = "technocore"
+InfosphereHand = "192.168.200.1"
+NFS = "192.168.200.1"
+LDAP = "192.168.200.1"
+CUSTOM = "192.168.200.1"
+DeadList = "/etc/persoc/deadlist.csv"
+@include "conf.d/"
+
